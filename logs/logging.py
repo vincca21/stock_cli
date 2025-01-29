@@ -11,7 +11,11 @@ logs will use subtle colors and formatting (spacing/indentation) to make it easi
 
 import logging
 import sys
-from colorama import Fore, Style # Fore allows for specific colors & Style allows for specific styles (bold, underline, etc)
+
+from colorama import (  # Fore allows for specific colors & Style allows for specific styles (bold, underline, etc)
+    Fore,
+    Style,
+)
 
 # Set up logging
 
@@ -48,7 +52,7 @@ class CustomFormatter(logging.Formatter):
         log_indent = LOG_INDENT.get(record.levelno, "")     # get indent for log level
         
         # set log message format 
-        log_msg = f"{log_color}{log_style}{record.asctime} - {record.levelname} - {record.filename} - {record.message}{Style.RESET_ALL}"
+        log_msg = f"{log_color}{log_style}{log_indent}{record.asctime} - {record.levelname} - {record.filename} - {record.message}{Style.RESET_ALL}"
 
         return log_msg
     
@@ -88,3 +92,8 @@ def get_logger():
 logger = setup_logger()
 
 
+"""
+How to use logger in different parts of the code:
+import logger from logs/logging.py
+
+"""
