@@ -1,0 +1,90 @@
+2025-01-29 14:46:23,596 - INFO - yfin_working.py - Starting test run
+2025-01-29 14:46:23,596 - INFO - yfin_working.py - Getting recent data for AAPL
+2025-01-29 14:46:23,850 - INFO - yfin_working.py - 
+=== AAPL Data ===
+      Date       Open       High        Low      Close   Volume
+                 AAPL       AAPL       AAPL       AAPL     AAPL
+2025-01-29 234.149994 238.199997 234.009995 237.929993 28196535
+
+2025-01-29 14:46:23,850 - INFO - yfin_working.py - Getting recent data for MSFT
+2025-01-29 14:46:24,003 - INFO - yfin_working.py - 
+=== MSFT Data ===
+      Date       Open       High        Low      Close   Volume
+                 MSFT       MSFT       MSFT       MSFT     MSFT
+2025-01-29 446.690002 446.880005 440.399994 444.320007 10506860
+
+2025-01-29 14:46:24,004 - INFO - yfin_working.py - Getting recent data for TSLA
+2025-01-29 14:46:24,097 - INFO - yfin_working.py - 
+=== TSLA Data ===
+      Date       Open       High        Low      Close   Volume
+                 TSLA       TSLA       TSLA       TSLA     TSLA
+2025-01-29 395.190002 398.589905 384.480011 389.589996 35740793
+
+2025-01-29 14:46:24,097 - INFO - yfin_working.py - End of test run
+2025-01-29 14:46:24,097 - INFO - yfin_working.py - End of test run
+2025-01-29 14:48:22,006 - INFO - yfin_working.py - Starting test run
+2025-01-29 14:48:22,006 - INFO - yfin_working.py - Getting recent data for AAPL
+2025-01-29 14:48:22,293 - INFO - yfin_working.py - 
+=== AAPL Data ===
+      Date       Open       High        Low      Close   Volume
+2025-01-29 237.910004 238.229996 234.009995 234.149994 28308466
+
+2025-01-29 14:48:22,294 - INFO - yfin_working.py - Getting recent data for MSFT
+2025-01-29 14:48:22,379 - INFO - yfin_working.py - 
+=== MSFT Data ===
+      Date       Open       High        Low      Close   Volume
+2025-01-29 444.725006 446.880005 440.399994 446.690002 10607126
+
+2025-01-29 14:48:22,379 - INFO - yfin_working.py - Getting recent data for TSLA
+2025-01-29 14:48:22,445 - INFO - yfin_working.py - 
+=== TSLA Data ===
+      Date       Open       High        Low      Close   Volume
+2025-01-29 391.265594 398.589905 384.480011 395.190002 36151471
+
+2025-01-29 14:48:22,445 - INFO - yfin_working.py - End of test run
+2025-01-29 14:48:22,445 - INFO - yfin_working.py - End of test run
+2025-01-29 14:49:28,256 - INFO - yfin_working.py - Starting test run
+2025-01-29 14:49:28,256 - INFO - yfin_working.py - Getting raw data for AAPL
+2025-01-29 14:49:28,513 - INFO - yfin_working.py - 
+=== AAPL Data ===
+      Date      Close       High        Low       Open   Volume
+                 AAPL       AAPL       AAPL       AAPL     AAPL
+2025-01-29 237.774994 238.229996 234.009995 234.149994 28358685
+
+2025-01-29 14:49:28,513 - INFO - yfin_working.py - Getting raw data for MSFT
+2025-01-29 14:49:28,609 - INFO - yfin_working.py - 
+=== MSFT Data ===
+      Date    Close       High        Low       Open   Volume
+               MSFT       MSFT       MSFT       MSFT     MSFT
+2025-01-29 444.3573 446.880005 440.399994 446.690002 10635596
+
+2025-01-29 14:49:28,609 - INFO - yfin_working.py - Getting raw data for TSLA
+2025-01-29 14:49:28,677 - INFO - yfin_working.py - 
+=== TSLA Data ===
+      Date      Close       High        Low       Open   Volume
+                 TSLA       TSLA       TSLA       TSLA     TSLA
+2025-01-29 390.737793 398.589905 384.480011 395.190002 36281328
+
+2025-01-29 14:49:28,677 - INFO - yfin_working.py - End of test run
+2025-01-29 14:49:28,677 - INFO - yfin_working.py - End of test run
+2025-01-29 14:49:52,229 - INFO - yfin_working.py - Starting test run
+2025-01-29 14:49:52,229 - INFO - yfin_working.py - Getting recent data for AAPL
+2025-01-29 14:49:52,525 - INFO - yfin_working.py - 
+=== AAPL Data ===
+      Date       Open       High        Low      Close   Volume
+2025-01-29 237.820007 238.229996 234.009995 234.149994 28376700
+
+2025-01-29 14:49:52,525 - INFO - yfin_working.py - Getting recent data for MSFT
+2025-01-29 14:49:52,647 - INFO - yfin_working.py - 
+=== MSFT Data ===
+      Date       Open       High        Low      Close   Volume
+2025-01-29 444.334991 446.880005 440.399994 446.690002 10643789
+
+2025-01-29 14:49:52,647 - INFO - yfin_working.py - Getting recent data for TSLA
+2025-01-29 14:49:52,737 - INFO - yfin_working.py - 
+=== TSLA Data ===
+      Date       Open       High        Low      Close   Volume
+2025-01-29 390.209991 398.589905 384.480011 395.190002 36344189
+
+2025-01-29 14:49:52,737 - INFO - yfin_working.py - End of test run
+2025-01-29 14:49:52,737 - INFO - yfin_working.py - End of test run
