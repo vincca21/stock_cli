@@ -1,27 +1,43 @@
 # scrape_work.py
 
+
+# Part 1: Fetching Stock Data -> separate into sections based on how often the data is/would be updated -> save to json file
+
 """
 Description:
 - Use yahooquery to fetch stock price and key data from Yahoo Finance API.
 - Store and organize the data points with timestamps, keeping the most recent at the top.
+
+
+Review:
+- The script fetches stock data using the Yahoo Finance API through the yahooquery library.
+- The script fetches different types of data for each stock ticker.
+- The fetched data is saved to a JSON file for each stock ticker.
+- The script logs the data fetching process and any errors that occur.
+
+Output Data:
+- The script saves the fetched data to a JSON file in the data directory.
+- The JSON file contains the fetched data for each stock ticker.
+- The JSON file is named stock_data.json.
+
+Improvements:
+- Add more error handling to the script.
+- Add more stock tickers to the ticker list for testing.
+- Improve the efficiency of the data fetching process.
 """
 
 import os
 import sys
-
-sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 import datetime
 import json
-
 from yahooquery import Ticker  # More reliable than scraping HTML
-
 from logs.logging import get_logger
 
 # Set up logger
 logger = get_logger()
 
 # Ticker list for testing
-ticker_list = ['AAPL', 'GOOGL', 'AMZN']
+ticker_list = ['AAPL', 'GOOGL', 'AMZN'] #, 'MSFT', 'TSLA', 'BRK-A', 'NVDA', 'JPM', 'V', 'UNH']
 
 # Directory for storing data
 DATA_DIR = "data"
@@ -38,7 +54,6 @@ def fetch_live_data(ticker):
     Returns:
     - dict: Live stock data with price, change, percentage change, and timestamp.
     """
-    logger.info(f"Fetching live data for {ticker}")
     try:
         stock = Ticker(ticker)
         market_data = stock.price.get(ticker, {})
@@ -64,7 +79,6 @@ def fetch_frequent_data(ticker):
     Returns:
     - dict: Frequently updated stock data.
     """
-    logger.info(f"Fetching frequent data for {ticker}")
     try:
         stock = Ticker(ticker)
         summary_detail = stock.summary_detail.get(ticker, {})
@@ -93,7 +107,6 @@ def fetch_infrequent_data(ticker):
     - dict: Infrequently updated stock data.
     """
     try:
-        logger.info(f"Fetching infrequent data for {ticker}")
         stock = Ticker(ticker)
         summary_profile = stock.summary_profile.get(ticker, {})
         infrequent_data = {
@@ -119,7 +132,6 @@ def fetch_general_data(ticker):
     - dict: General stock data.
     """
     try:
-        logger.info(f"Fetching general data for {ticker}")
         stock = Ticker(ticker)
         asset_profile = stock.asset_profile.get(ticker, {})
         general_data = {
@@ -128,7 +140,8 @@ def fetch_general_data(ticker):
             'website': asset_profile.get('website'),
             'timestamp': datetime.datetime.now().isoformat()
         }
-        logger.info(f"General data for {ticker}: {json.dumps(general_data, default=str)}")
+        # log output with general info but no dump bc it is too long
+        logger.info(f"General data for {ticker}")
         return general_data
     except Exception as e:
         logger.error(f"Error fetching general data for {ticker}: {e}")
@@ -143,7 +156,6 @@ def save_data(ticker, data):
     - data (dict): Stock data to save.
     """
     try:
-        logger.info(f"Saving data for {ticker}")
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r') as file:
                 all_data = json.load(file)
@@ -161,6 +173,7 @@ def save_data(ticker, data):
 def main():
     logger.info("...Starting data collection...")
     for ticker in ticker_list:
+        logger.info(f"Collecting data for {ticker}")
         live_data = fetch_live_data(ticker)
         frequent_data = fetch_frequent_data(ticker)
         infrequent_data = fetch_infrequent_data(ticker)
@@ -180,21 +193,3 @@ if __name__ == "__main__":
     main()
     
     
-"""
-Review:
-- The script fetches stock data using the Yahoo Finance API through the yahooquery library.
-- The script fetches different types of data for each stock ticker.
-- The fetched data is saved to a JSON file for each stock ticker.
-- The script logs the data fetching process and any errors that occur.
-
-Output Data:
-- The script saves the fetched data to a JSON file in the data directory.
-- The JSON file contains the fetched data for each stock ticker.
-- The JSON file is named stock_data.json.
-
-Improvements:
-- Add more error handling to the script.
-- Add more stock tickers to the ticker list for testing.
-- Improve the efficiency of the data fetching process.
-
-"""
