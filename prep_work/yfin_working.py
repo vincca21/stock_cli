@@ -6,6 +6,9 @@ Description:
     - Get stock data for a specific date range, particularly most recent data possible
 - figure all data received from yfinance and how to use it to plan database schema
 """
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 import datetime
 
 import yfinance as yf
