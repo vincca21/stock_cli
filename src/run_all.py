@@ -1,24 +1,28 @@
+# run_all.py
+
+import time
+import schedule
 import subprocess
 import sys
+
 from logs.logging import get_logger
 
 logger = get_logger()
 
-def run_scrape():
-    logger.info("Starting data scraping...")
-    try:
-        subprocess.run([sys.executable, "src/scrape_stock_data.py"], check=True)
-        logger.info("Data scraping completed successfully.")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Data scraping failed: {e}")
+# ---------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------
 
-def run_cli():
-    logger.info("Starting CLI...")
-    try:
-        subprocess.run([sys.executable, "src/cli.py"], check=True)
-    except subprocess.CalledProcessError as e:
-        logger.error(f"CLI failed: {e}")
+# You can easily adjust these for tuning/experimentation
+TICKER_LIST = [
+    "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META",
+    "NVDA", "JPM", "V", "WMT", "PG", "DIS", "BAC",
+    "XOM", "HD", "INTC", "MA", "GE", "PFE", "KO",
+    "PEP", "CSCO", "ORCL", "NFLX", "ADBE"
+]
 
-if __name__ == "__main__":
-    run_scrape()
-    run_cli()
+# How often we update live data (in minutes)
+LIVE_UPDATE_INTERVAL_MINUTES = 5
+
+# Path to our DB ingest script or function
+DB_INGEST_SCRIPT = "src/db_ingest.py"
