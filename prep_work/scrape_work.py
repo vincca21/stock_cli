@@ -27,7 +27,6 @@ Improvements:
 """
 
 import os
-import sys
 import datetime
 import json
 from yahooquery import Ticker  # More reliable than scraping HTML
