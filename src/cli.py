@@ -2,49 +2,42 @@
 
 import sqlite3
 import click
-import subprocess
-import sys
+import os
 from logs.logging import get_logger
+
+# Import the new function to refresh just one ticker
+from db_ingest import fetch_and_store_live_for_ticker
 
 logger = get_logger()
 
-DB_FILE = "stock_data.db"  # Adjust path if needed
-
+# Adjust if your DB is stored elsewhere
+DB_FILE = os.path.join("data", "stock_data.db")
 
 @click.group()
 def cli():
-    """A simple command-line interface for viewing stock data."""
+    """Simple CLI for viewing and refreshing stock data."""
     pass
-
 
 @click.command()
 @click.argument('ticker')
 @click.option('--refresh/--no-refresh', default=False,
-              help="If set, fetch and store the latest live data before displaying.")
+              help="If set, fetch & store the latest live data for the given ticker before display.")
 def live(ticker, refresh):
     """
     Show the most recent live data for a given TICKER.
-    
+
     Example usage:
       python cli.py live AAPL --refresh
     """
-    logger.info(f"Live command called for ticker='{ticker}', refresh={refresh}")
+    logger.info(f"CLI live command called for ticker='{ticker}', refresh={refresh}")
 
-    # 1) Optionally refresh the data
+    # 1) Optionally refresh the data via db_ingest
     if refresh:
-        logger.info(f"Refreshing live data for {ticker} before displaying.")
+        logger.info(f"Refreshing live data for {ticker} via db_ingest.")
         try:
-            # Example: call db_ingest.py with a hypothetical --live-only and --ticker CLI
-            #   so it fetches only new live data for this single ticker.
-            # Adjust this to match your actual db_ingest options or approach.
-            subprocess.run([
-                sys.executable, 
-                "src/db_ingest.py", 
-                "--live-only", 
-                f"--ticker={ticker}"
-            ], check=True)
+            fetch_and_store_live_for_ticker(DB_FILE, ticker)
             logger.info(f"Successfully refreshed live data for {ticker}.")
-        except subprocess.CalledProcessError as e:
+        except Exception as e:
             logger.error(f"Live data refresh failed for {ticker}: {e}")
             click.echo(f"\n[ERROR] Could not refresh live data for {ticker}.\n")
 
@@ -54,13 +47,15 @@ def live(ticker, refresh):
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
 
+        # Notice we reference 'LiveData' (capital L) to match your table, 
+        # and we do a JOIN on Ticker to get the symbol
         query = """
         SELECT t.symbol, l.price, l.change, l.percent_change, l.timestamp
-        FROM LiveData l
-        JOIN Ticker t ON t.id = l.ticker_id
-        WHERE t.symbol = ?
-        ORDER BY l.id DESC
-        LIMIT 1
+          FROM LiveData l
+          JOIN Ticker t ON t.id = l.ticker_id
+         WHERE t.symbol = ?
+      ORDER BY l.id DESC
+         LIMIT 1
         """
 
         cursor.execute(query, (ticker,))
@@ -84,7 +79,6 @@ def live(ticker, refresh):
 
 
 cli.add_command(live)
-
 
 if __name__ == "__main__":
     cli()
