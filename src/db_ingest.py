@@ -10,7 +10,6 @@ from scrape import (
     fetch_analysis_data,
 )
 
-# set up logger
 logger = get_logger()
 
 # -----------------------------
@@ -222,31 +221,12 @@ def store_analysis_data(conn, ticker_id, data):
     """
     Insert data into Analysis table, then store 
     recommendation_trend, earnings_trend, index_trend in separate tables.
-    Structure of `data` is typically:
-       {
-         'analysis': {
-            'full_data': {
-               'recommendation_trend': [...],
-               'computed_recommendation': '...',
-               'earnings_trend': {...},
-               'index_trend': {...}
-            },
-            'summary': {
-               'recommendation': ...,
-               'pe_ratio': ...,
-               'peg_ratio': ...,
-               'next_quarter_growth': ...
-            },
-            'timestamp': ...
-         }
-       }
     """
     analysis_dict = data.get('analysis', {})
     summary = analysis_dict.get('summary', {})
     full_data = analysis_dict.get('full_data', {})
     timestamp = analysis_dict.get('timestamp')
 
-    # Insert into Analysis table (summary-level fields)
     insert_analysis_sql = """
         INSERT INTO Analysis 
             (ticker_id, computed_recommendation, pe_ratio, peg_ratio, 
@@ -268,8 +248,6 @@ def store_analysis_data(conn, ticker_id, data):
     analysis_id = cursor.lastrowid  # capture the newly inserted Analysis id
 
     # Store recommendation trend
-    # (recommendation_trend is an array of dicts with fields like
-    #  period, strongBuy, buy, hold, sell, strongSell)
     recommendation_list = full_data.get('recommendation_trend', [])
     insert_recommend_sql = """
         INSERT INTO RecommendationTrend
@@ -277,7 +255,6 @@ def store_analysis_data(conn, ticker_id, data):
         VALUES
             (?, ?, ?, ?, ?, ?, ?)
     """
-
     for rec_row in recommendation_list:
         cursor.execute(insert_recommend_sql, (
             analysis_id,
@@ -290,7 +267,6 @@ def store_analysis_data(conn, ticker_id, data):
         ))
 
     # Store earnings trend
-    # (earnings_trend is a dict that often has a `trend` key with a list of dicts)
     earnings_dict = full_data.get('earnings_trend', {})
     trend_list = earnings_dict.get('trend', [])
     insert_earnings_sql = """
@@ -299,7 +275,6 @@ def store_analysis_data(conn, ticker_id, data):
         VALUES
             (?, ?, ?)
     """
-
     for e_row in trend_list:
         cursor.execute(insert_earnings_sql, (
             analysis_id,
@@ -308,7 +283,6 @@ def store_analysis_data(conn, ticker_id, data):
         ))
 
     # Store index trend
-    # (index_trend is a dict that can contain fields like peRatio, pegRatio, etc.)
     index_dict = full_data.get('index_trend', {})
     insert_index_sql = """
         INSERT INTO IndexTrend
@@ -316,18 +290,37 @@ def store_analysis_data(conn, ticker_id, data):
         VALUES
             (?, ?, ?)
     """
-
-    # Even though we only have a single row, we can treat it as we do. 
-    # If index_trend is empty, skip the insert
     if index_dict:
         cursor.execute(insert_index_sql, (
             analysis_id,
             index_dict.get('peRatio'),
             index_dict.get('pegRatio'),
         ))
-
     conn.commit()
 
+# -----------------------------
+# New function to fetch/store live data for 1 ticker
+# -----------------------------
+
+def fetch_and_store_live_for_ticker(db_path, ticker):
+    """
+    Fetch *only* the live data for a single ticker, then store in DB.
+    This helps the CLI quickly refresh a single ticker's live data.
+    """
+    logger.info(f"Fetching live data for single ticker '{ticker}'")
+    conn = init_db(db_path)
+    ticker_data = fetch_live_data([ticker])  # returns a dict { ticker: {...} }
+    
+    if ticker in ticker_data:
+        # find or create the Ticker row
+        t_id = get_or_create_ticker_id(conn, ticker)
+        # store the live data
+        store_live_data(conn, t_id, ticker_data[ticker])
+        logger.info(f"Stored latest live data for '{ticker}' in DB.")
+    else:
+        logger.warning(f"No live data returned for '{ticker}'")
+    
+    conn.close()
 
 # -----------------------------
 # Main Execution
