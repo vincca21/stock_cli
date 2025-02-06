@@ -11,7 +11,7 @@ from db_ingest import fetch_and_store_live_for_ticker
 logger = get_logger()
 
 # Adjust if your DB is stored elsewhere
-DB_FILE = os.path.join("data", "stock_data.db")
+DB_FILE = os.path.join("data", "stock_data_testing.db")
 
 @click.group()
 def cli():
@@ -27,28 +27,26 @@ def live(ticker, refresh):
     Show the most recent live data for a given TICKER.
 
     Example usage:
-      python cli.py live AAPL --refresh
+      live AAPL --refresh
     """
-    logger.info(f"CLI live command called for ticker='{ticker}', refresh={refresh}")
+    click.secho(f"\n[INFO] Processing 'live' command for {ticker}", fg='yellow', bold=True)
 
-    # 1) Optionally refresh the data via db_ingest
+    # 1) Optionally refresh the data
     if refresh:
-        logger.info(f"Refreshing live data for {ticker} via db_ingest.")
+        click.secho(f"Refreshing live data for {ticker} ...", fg='cyan')
         try:
             fetch_and_store_live_for_ticker(DB_FILE, ticker)
-            logger.info(f"Successfully refreshed live data for {ticker}.")
+            click.secho(f"Successfully refreshed live data for {ticker}.", fg='green')
         except Exception as e:
             logger.error(f"Live data refresh failed for {ticker}: {e}")
-            click.echo(f"\n[ERROR] Could not refresh live data for {ticker}.\n")
+            click.secho(f"\n[ERROR] Could not refresh live data for {ticker}.\n", fg='red')
+            return
 
     # 2) Query the database for the latest entry for this ticker
-    logger.info(f"Fetching latest live data from DB for {ticker}")
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
 
-        # Notice we reference 'LiveData' (capital L) to match your table, 
-        # and we do a JOIN on Ticker to get the symbol
         query = """
         SELECT t.symbol, l.price, l.change, l.percent_change, l.timestamp
           FROM LiveData l
@@ -63,19 +61,34 @@ def live(ticker, refresh):
         conn.close()
 
         if data:
-            # data = (symbol, price, change, percent_change, timestamp)
-            click.echo("\n--- LIVE DATA ---")
-            click.echo(f" Ticker:         {data[0]}")
-            click.echo(f" Price:          {data[1]}")
-            click.echo(f" Change:         {data[2]}")
-            click.echo(f" Percent Change: {data[3]}%")
-            click.echo(f" Timestamp:      {data[4]}")
-            click.echo("---\n")
+            symbol, price, change, pct, ts = data
+
+            click.secho("\n--- LIVE DATA ---", fg='blue', bold=True)
+            click.echo(f" Ticker:         {symbol}")
+            click.echo(f" Price:          ${price:.2f}")
+
+            # Color-code the change
+            if change is not None:
+                color = 'green' if change >= 0 else 'red'
+                click.secho(f" Change:         {change:.2f}", fg=color)
+            else:
+                click.echo(" Change:         N/A")
+
+            # Color-code the percent change
+            if pct is not None:
+                color = 'green' if pct >= 0 else 'red'
+                click.secho(f" Percent Change: {pct:.2f}%", fg=color)
+            else:
+                click.echo(" Percent Change: N/A")
+
+            click.echo(f" Timestamp:      {ts}")
+            click.secho("---\n", fg='blue', bold=True)
+
         else:
-            click.echo(f"No live data found in the DB for ticker='{ticker}'.")
+            click.secho(f"No live data found in the DB for ticker='{ticker}'.", fg='red')
     except Exception as e:
         logger.error(f"Error fetching live data for {ticker}: {e}")
-        click.echo(f"[ERROR] Unable to retrieve live data for {ticker}")
+        click.secho(f"[ERROR] Unable to retrieve live data for {ticker}", fg='red')
 
 
 cli.add_command(live)
