@@ -1,3 +1,6 @@
 # Ignore project notes
 notes.md
 logs.log
+data/*.db
+data/*.json
+
