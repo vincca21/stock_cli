@@ -1,6 +1,5 @@
 # db_ingest.py
 
-import sqlite3
 import time
 
 # Import the scraping functions from scrape.py
@@ -16,7 +15,6 @@ from utils import (
     logger,             # We can reuse the same logger as in run_all.py if desired
     DB_FILE,            # The shared DB file path
     TICKER_LIST,        # The default ticker list for large/batch fetches
-    CREATE_TABLES_SQL,  # SQL for creating necessary tables
     init_db             # Function to initialize the DB with CREATE statements
 )
 

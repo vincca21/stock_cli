@@ -18,7 +18,6 @@ import pandas as pd
 from yahooquery import Ticker
 
 from logs.logging import get_logger
-from utils import TICKER_LIST  # or any other config you want from utils.py
 
 logger = get_logger()
 

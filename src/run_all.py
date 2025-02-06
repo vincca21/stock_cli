@@ -1,6 +1,5 @@
 # run_all.py
 
-import os
 import time
 import schedule
 import subprocess
