@@ -8,7 +8,7 @@ import sys
 import threading
 import signal
 import sqlite3
-import platform
+#import platform
 
 from logs.logging import get_logger
 
@@ -43,12 +43,11 @@ logger.info("Importing run_all.py Configuration...")
 # Spinner Utility - Progress Indicator
 # ---------------------------------------------------------
 
+complete = [False] # shared variable to signal spinner to stop
 def show_spinner(function_name, *args, **kwargs):
     """
     Show a spinner while a long-running function is in progress.
-    """
-    complete = False # mutable sentinel: a list to hold a boolean to indicate completion
-    
+    """    
     def spinner_task():
         spinner_chars = ["|", "/", "-", "\\"] # spinner animation characters
         i = 0
@@ -62,15 +61,11 @@ def show_spinner(function_name, *args, **kwargs):
     spinner_thread = threading.Thread(target=spinner_task, daemon=True)
     spinner_thread.start() # start the spinner
     
-    # Call the function with the provided arguments
-    try:
-        function_name(*args, **kwargs)
-    except Exception as e:
-        complete[0] = True
-        raise e
-    finally:
-        complete[0] = True # signal the spinner to stop
-        spinner_thread.join() # wait for the spinner to stop
+    function_name(*args, **kwargs) # run the function
+    
+    complete[0] = True # signal the spinner to stop
+    spinner_thread.join() # wait for the spinner to stop
+
             
 # ---------------------------------------------------------
 # One-time Full Ingestion
@@ -124,34 +119,39 @@ def schedule_runner():
         time.sleep(1)
 
 # ---------------------------------------------------------
-# Launch CLI in a New Terminal (macOS)
+# Launch CLI in new ITerm2 Window (macOS)
 # ---------------------------------------------------------
 
 def launch_cli_in_new_terminal():
     """
-    On macOS, we'll use osascript to open a new Terminal tab/window
-    and run our CLI script inside it.
-    
-    This AppleScript command tells Terminal to open a new window
-    and run: `python3 src/cli.py`
+    On macOS w/ iTerm2, launches a new terminal window with the CLI, cd to the right dir, and run the CLI
+        - if iTerm2 not available -> fallback to standard terminal
     """
-    logger.info("Attempting to launch CLI in a new Terminal window on macOS...")
-
-    # We create a small AppleScript snippet that instructs Terminal to:
-    # 1) Open a new window
-    # 2) Run our Python CLI script
-    cmd_script = (
-        f'tell application "Terminal" to do script '
-        f'"{sys.executable} {CLI_SCRIPT}"'
-    )
-
-    try:
-        subprocess.run(["osascript", "-e", cmd_script], check=True)
-        logger.info("Successfully launched CLI in new Terminal window.")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to launch CLI in new Terminal: {e}")
-        # Fallback: run CLI in the same window
-        subprocess.run([sys.executable, CLI_SCRIPT], check=True)
+    logger.info("Launching the CLI in a new Terminal window...")
+    
+    current_dir = os.getcwd() # get the current working directory
+    cli_cmd_script = f'''
+    tell application "iTerm"
+    create window with default profile
+    tell current session of current window
+    write text "cd {current_dir} && python3 {CLI_SCRIPT}"
+    end tell
+    end tell
+    '''
+    
+    try: 
+        # Attempt to launch the CLI in a new iTerm2 window
+        subprocess.run(["osascript", "-e", cli_cmd_script], check=True)
+        logger.info("CLI launched successfully in a new iTerm2 window.")
+    except subprocess.CalledProcessError:
+        logger.warning("iTerm2 not available, falling back to standard Terminal.")
+        subprocess.run(["python3", CLI_SCRIPT], check=True)
+        fallback_cmd = f"cd {current_dir} && python3 {CLI_SCRIPT}"
+        subprocess.run(["osascript", "-e", f'tell app "Terminal" to do script "{fallback_cmd}"'], check=True)
+        try:
+            subprocess.run(["osascript", "-e", 'tell app "Terminal" to activate'], check=True)
+        except subprocess.CalledProcessError:
+            logger.error("Failed to activate Terminal window.")
 
 # ---------------------------------------------------------
 # Display Basic Data for All Tickers
