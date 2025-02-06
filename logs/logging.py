@@ -47,15 +47,17 @@ class CustomFormatter(logging.Formatter):
     
     # override the format method
     def format(self, record):
-        log_color = LOG_COLORS.get(record.levelno, "")      # get color for log level
-        log_style = LOG_STYLES.get(record.levelno, "")      # get style for log level
-        log_indent = LOG_INDENT.get(record.levelno, "")     # get indent for log level
+        log_color = LOG_COLORS.get(record.levelname, "")      # get color for log level
+        log_style = LOG_STYLES.get(record.levelname, "")      # get style for log level
+        log_indent = LOG_INDENT.get(record.levelname, "")     # get indent for log level
         
         # set log message format 
         log_msg = f"{log_color}{log_style}{log_indent}{record.asctime} - {record.levelname} - {record.filename} - {record.message}{Style.RESET_ALL}"
 
         return log_msg
     
+# Set if logs should be printed to console
+to_console=False
     
 # create logger
 def setup_logger(log_file='logs.log'):
@@ -76,11 +78,12 @@ def setup_logger(log_file='logs.log'):
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
     
-    # console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(CustomFormatter())
-    logger.addHandler(console_handler)
+    if to_console:
+        # console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.DEBUG)
+        console_handler.setFormatter(CustomFormatter())
+        logger.addHandler(console_handler)
     
     return logger
 
