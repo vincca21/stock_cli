@@ -2,16 +2,16 @@
 
 import sqlite3
 import click
-import os
 from logs.logging import get_logger
 
-# Import the new function to refresh just one ticker
+# Import from db_ingest or utils
+# to fetch single ticker data
 from db_ingest import fetch_and_store_live_for_ticker
 
-logger = get_logger()
+# Import the shared DB_FILE
+from utils import DB_FILE
 
-# Adjust if your DB is stored elsewhere
-DB_FILE = os.path.join("data", "stock_data_testing.db")
+logger = get_logger()
 
 @click.group()
 def cli():
@@ -42,7 +42,7 @@ def live(ticker, refresh):
             click.secho(f"\n[ERROR] Could not refresh live data for {ticker}.\n", fg='red')
             return
 
-    # 2) Query the database for the latest entry for this ticker
+    # 2) Query the database
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
@@ -67,14 +67,12 @@ def live(ticker, refresh):
             click.echo(f" Ticker:         {symbol}")
             click.echo(f" Price:          ${price:.2f}")
 
-            # Color-code the change
             if change is not None:
                 color = 'green' if change >= 0 else 'red'
                 click.secho(f" Change:         {change:.2f}", fg=color)
             else:
                 click.echo(" Change:         N/A")
 
-            # Color-code the percent change
             if pct is not None:
                 color = 'green' if pct >= 0 else 'red'
                 click.secho(f" Percent Change: {pct:.2f}%", fg=color)
