@@ -1,12 +1,10 @@
-# scrape.py
-
 """
 AUTHOR: Carter Vincent
-DESCRIPTION: 
+DESCRIPTION:
 - Uses yahooquery to fetch stock data (live, daily, fundamentals, analysis)
 - Saves two versions of the analysis data for each ticker:
-  1) 'full_data' -> the complete, verbose data
-  2) 'summary'   -> a simplified subset of key insights
+  1 'full_data' -> the complete, verbose data
+  2 'summary'   -> a simplified subset of key insights
 - Avoids overwriting existing entries by merging all categories under each ticker.
 - Saves final data to JSON (ready to be swapped out for SQLite DB later).
 """
@@ -20,14 +18,16 @@ import pandas as pd
 from yahooquery import Ticker
 
 from logs.logging import get_logger
-
-# Configuration
-ticker_list = ['AAPL', 'MSFT', 'GOOGL']  # Tickers for testing
-DATA_DIR = "data"                        # Directory for storing data
-os.makedirs(DATA_DIR, exist_ok=True)     # Create data directory if it doesn't exist
-DATA_FILE = os.path.join(DATA_DIR, "stock_data.json")  # Path for storing data
+from utils import TICKER_LIST  # or any other config you want from utils.py
 
 logger = get_logger()
+
+# If you prefer to keep the data file location in utils, import it:
+# from utils import DATA_DIR, JSON_DATA_FILE
+# For demonstration, we keep the local approach here:
+DATA_DIR = "data"                        
+os.makedirs(DATA_DIR, exist_ok=True)     
+DATA_FILE = os.path.join(DATA_DIR, "stock_data.json")  # local JSON path
 
 # -----------------------------
 # Data Cleaning / Defaults
@@ -71,7 +71,7 @@ def clean_list(value, default=None):
     return default or []
 
 # -----------------------------
-# Helper to chunk tickers
+# Helper: chunk tickers
 # -----------------------------
 
 def chunk_tickers(tickers, chunk_size=3):
@@ -92,27 +92,26 @@ def fetch_live_data(tickers):
     """
     logger.info(f"Fetching live data for {len(tickers)} tickers in chunks of 3.")
     results = {}
-    # Break into chunks
+
     for chunk in chunk_tickers(tickers, chunk_size=3):
-        logger.debug(f"Fetching live data chunk: {chunk}")
-        # Create a Ticker object for this chunk
+        logger.debug(f"Live data chunk: {chunk}")
         ticker_obj = Ticker(chunk)
         price_data = ticker_obj.price
 
-        for ticker in chunk:
+        for symbol in chunk:
             try:
-                logger.debug(f"Fetching live data for ticker='{ticker}'.")
-                market_data = price_data.get(ticker, {})
-                # Build result with cleaning
-                results[ticker] = {
+                logger.debug(f"Fetching live data for '{symbol}'.")
+                market_data = price_data.get(symbol, {})
+                results[symbol] = {
                     'price': clean_numeric(safe_get(market_data, 'regularMarketPrice')),
                     'change': clean_numeric(safe_get(market_data, 'regularMarketChange')),
                     'percent_change': clean_numeric(safe_get(market_data, 'regularMarketChangePercent')),
                     'timestamp': datetime.datetime.now().isoformat()
                 }
-                logger.info(f"Live data fetch successful for {ticker}")
+                logger.info(f"Live data fetch successful for {symbol}")
             except Exception as e:
-                logger.error(f"Error fetching live data for {ticker}: {e}")
+                logger.error(f"Error fetching live data for {symbol}: {e}")
+
     return results
 
 def fetch_daily_data(tickers):
@@ -121,16 +120,16 @@ def fetch_daily_data(tickers):
     """
     logger.info(f"Fetching daily data for {len(tickers)} tickers in chunks of 3.")
     results = {}
-    for chunk in chunk_tickers(tickers, chunk_size=3):
-        logger.debug(f"Fetching daily data chunk: {chunk}")
+    for chunk in chunk_tickers(tickers, 3):
+        logger.debug(f"Daily data chunk: {chunk}")
         ticker_obj = Ticker(chunk)
         summary_detail_data = ticker_obj.summary_detail
 
-        for ticker in chunk:
+        for symbol in chunk:
             try:
-                logger.debug(f"Fetching daily data for ticker='{ticker}'.")
-                summary_detail = summary_detail_data.get(ticker, {})
-                results[ticker] = {
+                logger.debug(f"Fetching daily data for '{symbol}'.")
+                summary_detail = summary_detail_data.get(symbol, {})
+                results[symbol] = {
                     'open': clean_numeric(safe_get(summary_detail, 'open')),
                     'previous_close': clean_numeric(safe_get(summary_detail, 'previousClose')),
                     'day_high': clean_numeric(safe_get(summary_detail, 'dayHigh')),
@@ -141,10 +140,10 @@ def fetch_daily_data(tickers):
                     'forward_pe': clean_numeric(safe_get(summary_detail, 'forwardPE')),
                     'timestamp': datetime.datetime.now().isoformat()
                 }
-                logger.info(f"Daily data fetch successful for {ticker}")
-                logger.debug(f"Daily data details for {ticker}: {results[ticker]}")
+                logger.info(f"Daily data fetch successful for {symbol}")
+                logger.debug(f"Daily data details for {symbol}: {results[symbol]}")
             except Exception as e:
-                logger.error(f"Error fetching daily data for {ticker}: {e}")
+                logger.error(f"Error fetching daily data for {symbol}: {e}")
     return results
 
 def fetch_fundamental_data(tickers):
@@ -153,67 +152,60 @@ def fetch_fundamental_data(tickers):
     """
     logger.info(f"Fetching fundamental data for {len(tickers)} tickers in chunks of 3.")
     results = {}
-    for chunk in chunk_tickers(tickers, chunk_size=3):
-        logger.debug(f"Fetching fundamental data chunk: {chunk}")
+    for chunk in chunk_tickers(tickers, 3):
+        logger.debug(f"Fundamental data chunk: {chunk}")
         ticker_obj = Ticker(chunk)
         asset_profile_data = ticker_obj.asset_profile
 
-        for ticker in chunk:
+        for symbol in chunk:
             try:
-                logger.debug(f"Fetching fundamental data for ticker='{ticker}'.")
-                info = asset_profile_data.get(ticker, {})
-                results[ticker] = {
+                logger.debug(f"Fetching fundamental data for '{symbol}'.")
+                info = asset_profile_data.get(symbol, {})
+                results[symbol] = {
                     'sector': clean_text(safe_get(info, 'sector')),
                     'industry': clean_text(safe_get(info, 'industry')),
-                    'full_time_employees': int(clean_numeric(safe_get(info, 'fullTimeEmployees'), default=0.0)),
+                    'full_time_employees': int(clean_numeric(safe_get(info, 'fullTimeEmployees'), 0.0)),
                     'country': clean_text(safe_get(info, 'country')),
                     'website': clean_text(safe_get(info, 'website')),
                     'description': clean_text(safe_get(info, 'longBusinessSummary')),
                     'timestamp': datetime.datetime.now().isoformat()
                 }
-                logger.info(f"Fundamental data fetch successful for {ticker}")
+                logger.info(f"Fundamental data fetch successful for {symbol}")
             except Exception as e:
-                logger.error(f"Error fetching fundamental data for {ticker}: {e}")
+                logger.error(f"Error fetching fundamental data for {symbol}: {e}")
     return results
 
 def fetch_analysis_data(tickers):
     """
     Fetch multiple analysis-related endpoints in chunks of 3.
-    Each chunk returns data for 'recommendation_trend', 'earnings_trend', 'index_trend'.
-    We then construct:
-      'analysis': {
-         'full_data': { ... all raw info ... },
-         'summary': { ... condensed version ... },
-         'timestamp': ...
-      }
+    Returns dict keyed by ticker, containing 'analysis': {...}.
     """
     logger.info(f"Fetching analysis data for {len(tickers)} tickers in chunks of 3.")
     results = {}
 
-    for chunk in chunk_tickers(tickers, chunk_size=3):
-        logger.debug(f"Fetching analysis data chunk: {chunk}")
+    for chunk in chunk_tickers(tickers, 3):
+        logger.debug(f"Analysis data chunk: {chunk}")
         ticker_obj = Ticker(chunk)
 
-        # Attempt to fetch each data set for this chunk
         try:
             rec_trend_df = ticker_obj.recommendation_trend
-            logger.debug("Successfully fetched recommendation_trend.")
+            logger.debug("Fetched recommendation_trend.")
         except Exception as e:
-            logger.error(f"Error fetching recommendation_trend for chunk {chunk}: {e}")
+            logger.error(f"Error fetching recommendation_trend for {chunk}: {e}")
             rec_trend_df = pd.DataFrame()
 
         try:
             earnings_data = ticker_obj.earnings_trend
-            logger.debug("Successfully fetched earnings_trend.")
+            logger.debug("Fetched earnings_trend.")
         except Exception as e:
-            logger.error(f"Error fetching earnings_trend for chunk {chunk}: {e}")
+            logger.error(f"Error fetching earnings_trend for {chunk}: {e}")
             earnings_data = {}
 
         try:
             index_data = ticker_obj.index_trend
             logger.debug(f"Index data: {index_data}")
         except Exception as e:
-            logger.error(f"Error fetching index_trend for chunk {chunk}: {e}")
+            logger.error(f"Error fetching index_trend for {chunk}: {e}")
             index_data = {}
 
         def interpret_recommendation(counts):
@@ -241,17 +233,14 @@ def fetch_analysis_data(tickers):
             best_key = max(mapping, key=mapping.get)
             return label_map.get(best_key, "Unknown")
 
-        def process_recommendation_trend(df, ticker_sym):
-            """
-            Return a dict with recommendation_trend data and a computed_recommendation.
-            """
-            if df.empty or ticker_sym not in df.index.levels[0]:
-                logger.debug(f"No recommendation trend data found for ticker='{ticker_sym}'.")
+        def process_recommendation_trend(df, symbol):
+            if df.empty or symbol not in df.index.levels[0]:
+                logger.debug(f"No recommendation trend data for '{symbol}'.")
                 return {
                     'recommendation_trend': [],
                     'computed_recommendation': "No Data"
                 }
-            sub_df = df.xs(ticker_sym, level=0).copy()
+            sub_df = df.xs(symbol, level=0).copy()
             sub_df.reset_index(drop=True, inplace=True)
             rec_list = sub_df.to_dict(orient='records')
 
@@ -260,7 +249,7 @@ def fetch_analysis_data(tickers):
             if row_0m is None and len(rec_list) > 0:
                 row_0m = rec_list[0]
             elif row_0m is None:
-                row_0m = {}  # fallback
+                row_0m = {}
 
             recommendation = interpret_recommendation(row_0m)
             return {
@@ -269,10 +258,7 @@ def fetch_analysis_data(tickers):
             }
 
         def create_summary(full_info):
-            """
-            Extract key fields from the full_info for a concise summary.
-            """
-            logger.debug("Creating summary from full_info for ticker.")
+            logger.debug("Creating summary from analysis full_info.")
             rec_recommendation = full_info.get('computed_recommendation', "Unknown")
             idx_trend = full_info.get('index_trend', {})
             pe_ratio = idx_trend.get('peRatio', None)
@@ -292,13 +278,13 @@ def fetch_analysis_data(tickers):
             logger.debug(f"Summary created: {summary}")
             return summary
 
-        # Process for each ticker in this chunk
-        for ticker in chunk:
+        # Process each ticker in this chunk
+        for symbol in chunk:
             try:
-                logger.debug(f"Fetching analysis data for ticker='{ticker}'.")
-                rec_details = process_recommendation_trend(rec_trend_df, ticker)
-                ticker_earnings = earnings_data.get(ticker, {})
-                ticker_index = index_data.get(ticker, {})
+                logger.debug(f"Fetching analysis data for '{symbol}'.")
+                rec_details = process_recommendation_trend(rec_trend_df, symbol)
+                ticker_earnings = earnings_data.get(symbol, {})
+                ticker_index = index_data.get(symbol, {})
 
                 full_analysis = {
                     'recommendation_trend': rec_details.get('recommendation_trend', []),
@@ -308,17 +294,17 @@ def fetch_analysis_data(tickers):
                 }
                 simplified = create_summary(full_analysis)
 
-                results[ticker] = {
+                results[symbol] = {
                     'analysis': {
                         'full_data': full_analysis,
                         'summary': simplified,
                         'timestamp': datetime.datetime.now().isoformat()
                     }
                 }
-                logger.info(f"Analysis data fetch successful for {ticker}")
+                logger.info(f"Analysis data fetch successful for {symbol}")
             except Exception as e:
-                logger.error(f"Error processing analysis data for {ticker}: {e}")
-                results[ticker] = {
+                logger.error(f"Error processing analysis data for {symbol}: {e}")
+                results[symbol] = {
                     'analysis': {
                         'full_data': {},
                         'summary': {'recommendation': "Error"},
@@ -392,51 +378,31 @@ def save_data(data, filename):
 # -----------------------------
 
 def main():
-    logger.info("Starting stock data collection...")
+    """
+    Simple demonstration of fetching *all* categories for the TICKER_LIST
+    (imported from utils) and saving them to local JSON.
+    This is just for local testing. The real ingestion goes via db_ingest.
+    """
+    from utils import TICKER_LIST  # or import at top, whichever style you prefer
+
+    logger.info("Starting stock data collection (scrape.py main).")
     start_time = time.time()
 
-    # For demonstration, we fetch all categories
-    step_start_time = time.time()
-    live_data = fetch_live_data(ticker_list)
-    logger.info(f"Fetched live data in {time.time() - step_start_time:.2f}s")
+    # 1 Fetch each category
+    live_data = fetch_live_data(TICKER_LIST)
+    daily_data = fetch_daily_data(TICKER_LIST)
+    fundamental_data = fetch_fundamental_data(TICKER_LIST)
+    analysis_data = fetch_analysis_data(TICKER_LIST)
 
-    step_start_time = time.time()
-    daily_data = fetch_daily_data(ticker_list)
-    logger.info(f"Fetched daily data in {time.time() - step_start_time:.2f}s")
-
-    step_start_time = time.time()
-    fundamental_data = fetch_fundamental_data(ticker_list)
-    logger.info(f"Fetched fundamental data in {time.time() - step_start_time:.2f}s")
-
-    step_start_time = time.time()
-    analysis_data = fetch_analysis_data(ticker_list)  # returns both 'full_data' and 'summary'
-    logger.info(f"Fetched analysis data in {time.time() - step_start_time:.2f}s")
-    
-    step_start_time = time.time()
+    # 2 Combine in memory
     combined_data = combine_data_in_memory(live_data, daily_data, fundamental_data, analysis_data)
-    logger.info(f"Combined data in {time.time() - step_start_time:.2f}s")
 
-    step_start_time = time.time()
+    # 3 Save to local JSON for demonstration
     save_data(combined_data, DATA_FILE)
-    logger.info(f"Saved data in {time.time() - step_start_time:.2f}s")
 
-    total_time = time.time() - start_time
-    logger.info(f"Stock data collection completed in {total_time:.2f}s")
-    logger.info(f"Data saved to {DATA_FILE}")
-    logger.info("Exiting...")
+    elapsed = time.time() - start_time
+    logger.info(f"Data collection completed in {elapsed:.2f}s. JSON saved at {DATA_FILE}")
+    logger.info("Exiting scrape.py...")
 
 if __name__ == "__main__":
     main()
-
-
-"""
-TODO:
-- Add Functionality
-    - Scheduling integration to run at specific times/intervals while the market is open
-    - Single save function >> could increase performance
-- Testing
-    - Test the code with a larger list of tickers
-- Documentation
-- Cleanup
-- Refactoring (if needed)
-"""
