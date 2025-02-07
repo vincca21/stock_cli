@@ -1,53 +1,25 @@
 # run_all.py
 
-import time
-import schedule
+import signal
+import sqlite3
 import subprocess
 import sys
 import threading
-import signal
-import sqlite3
+import time
+
+import schedule
+
+from cli import display_basic_data_for_all_tickers
 from logs.logging import get_logger
 
 # Import from utils
-from utils import (
-    #TICKER_LIST,
-    DB_FILE,
-    LIVE_UPDATE_INTERVAL_MINUTES
-)
+from utils import DB_FILE, LIVE_UPDATE_INTERVAL_SECONDS  # TICKER_LIST,
 
 logger = get_logger()
 
 # Also import your other code or references here.
 # For example: from utils import init_db, CREATE_TABLES_SQL, etc.
 
-# ---------------------------------------------------------
-# Spinner Utility
-# ---------------------------------------------------------
-
-complete = [False]  # shared variable to signal spinner to stop
-
-def show_spinner(function_name, *args, **kwargs):
-    """
-    Show a spinner while a long-running function is in progress.
-    """
-    def spinner_task():
-        spinner_chars = ["|", "/", "-", "\\"]
-        i = 0
-        while not complete[0]:
-            sys.stdout.write(f"\rAccessing & Loading Data... {spinner_chars[i]} ")
-            sys.stdout.flush()
-            i = (i + 1) % len(spinner_chars)
-            time.sleep(0.1)
-        sys.stdout.write("\rData Loading Completed...  \n")
-
-    spinner_thread = threading.Thread(target=spinner_task, daemon=True)
-    spinner_thread.start()
-
-    function_name(*args, **kwargs)
-
-    complete[0] = True
-    spinner_thread.join()
 
 # ---------------------------------------------------------
 # One-time Full Ingestion
@@ -64,26 +36,6 @@ def run_full_ingest():
     except subprocess.CalledProcessError as e:
         logger.error(f"Full data ingestion failed: {e}")
 
-# ---------------------------------------------------------
-# Recurring Live Data Updates
-# ---------------------------------------------------------
-
-def run_live_data_update():
-    logger.info("Starting recurring live data update...")
-    try:
-        subprocess.run([sys.executable, DB_INGEST_SCRIPT], check=True)
-        logger.info("Live data update completed successfully.")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Live data update failed: {e}")
-
-# ---------------------------------------------------------
-# Scheduling Thread
-# ---------------------------------------------------------
-
-def schedule_runner():
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
 
 # ---------------------------------------------------------
 # Display Basic Data for All Tickers
@@ -115,31 +67,17 @@ def display_basic_data_for_all_tickers():
             print("No live data found in the DB.")
             return
 
-        print("\n=== BASIC LIVE DATA SNAPSHOT ===")
+        print("\n=== LIVE DATA SNAPSHOT ===")
         print(f"{'Symbol':<8} {'Price':>10} {'Change':>10} {'PctChg':>10} {'Timestamp':>25}")
         print("-" * 70)
         for (symbol, price, change, pct, ts) in rows:
             print(f"{symbol:<8} {price:>10.2f} {change:>10.2f} {pct:>10.2f} {ts:>25}")
         print("-" * 70)
-        print("End of snapshot.\n")
     except Exception as e:
         logger.error(f"Error displaying basic data: {e}")
         print("[ERROR] Unable to display basic data for tickers.\n")
 
-# ---------------------------------------------------------
-# Countdown
-# ---------------------------------------------------------
 
-def show_countdown_to_next_update(interval_minutes):
-    logger.info("Showing countdown to next update.")
-    seconds_remaining = interval_minutes * 60
-    while seconds_remaining > 0:
-        mins, secs = divmod(seconds_remaining, 60)
-        sys.stdout.write(f"\rNext auto-update in: {mins:02d}:{secs:02d} ")
-        sys.stdout.flush()
-        time.sleep(1)
-        seconds_remaining -= 1
-    sys.stdout.write("\n")
 
 # ---------------------------------------------------------
 # Main
@@ -152,8 +90,8 @@ def main():
     show_spinner(run_full_ingest)
 
     # Step 2) Schedule repeated updates
-    logger.info(f"Scheduling live data updates every {LIVE_UPDATE_INTERVAL_MINUTES} minutes.")
-    schedule.every(LIVE_UPDATE_INTERVAL_MINUTES).minutes.do(run_live_data_update)
+    logger.info(f"Scheduling live data updates every {LIVE_UPDATE_INTERVAL_SECONDS} minutes.")
+    schedule.every(LIVE_UPDATE_INTERVAL_SECONDS).minutes.do(run_live_data_update)
     sched_thread = threading.Thread(target=schedule_runner, daemon=True)
     sched_thread.start()
 
@@ -170,7 +108,7 @@ def main():
     # Step 4) Keep the script alive
     try:
         while True:
-            show_countdown_to_next_update(LIVE_UPDATE_INTERVAL_MINUTES)
+            show_countdown_to_next_update(LIVE_UPDATE_INTERVAL_SECONDS)
     except KeyboardInterrupt:
         logger.info("Graceful shutdown requested. Exiting run_all.py.")
 
