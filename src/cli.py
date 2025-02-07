@@ -11,14 +11,8 @@ import schedule
 from utils import DB_FILE, LIVE_UPDATE_INTERVAL_SECONDS, TICKER_LIST
 from logs.logging import get_logger
 
-# Import from db_ingest or utils
-# to fetch single ticker data
-from db_ingest import fetch_and_store_live_for_ticker
-
-# Import the shared DB_FILE
-from utils import DB_FILE
-
 DB_INGEST_SCRIPT = "src/db_ingest.py"
+
 
 logger = get_logger()
 
@@ -85,4 +79,30 @@ def show_spinner(function_name, *args, **kwargs):
 
     complete[0] = True
     spinner_thread.join()
+
+
+# ---------------------------------------------------------
+# Live Data Display
+# ---------------------------------------------------------
+
+"""
+Build basic output for live data, ouput with standard formatt for stock information, add some color coding for better readability and informational purposes
+Stock data format:
+    Symbol  Price   Change  PctChg  Timestamp
+    
+    AAPL    123.45  -0.67   -0.54%  12:34:56
+    GOOGL   2345.67  12.34   0.53%   12:34:56
+    
+    Color coding:
+    - Green for positive values in Change and PctChg
+    - Red for negative values in Change and PctChg
+
+Output live data for all tickers in the DB with live data
+
+Update the data based on the LIVE_UPDATE_INTERVAL_SECONDS
+
+focus on clean and readable
+"""
+
+def display_
 
