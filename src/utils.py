@@ -23,8 +23,8 @@ TICKER_LIST = [
 DB_FILE_NAME = "stock_data_testing.db"
 DB_FILE = os.path.join("data", DB_FILE_NAME)
 
-# Interval (in minutes) for recurring live data updates
-LIVE_UPDATE_INTERVAL_MINUTES = 1
+# Interval (in seconds) for recurring live data updates
+LIVE_UPDATE_INTERVAL_SECONDS = 10
 
 # If multiple scripts require the same create-tables SQL, put it here:
 CREATE_TABLES_SQL = """
