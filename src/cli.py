@@ -1,7 +1,14 @@
 # cli.py
 
+import os
+import sys
+import time
+import subprocess
 import sqlite3
 import click
+import threading
+import schedule
+from utils import DB_FILE, LIVE_UPDATE_INTERVAL_SECONDS, TICKER_LIST
 from logs.logging import get_logger
 
 # Import from db_ingest or utils
@@ -11,85 +18,71 @@ from db_ingest import fetch_and_store_live_for_ticker
 # Import the shared DB_FILE
 from utils import DB_FILE
 
+DB_INGEST_SCRIPT = "src/db_ingest.py"
+
 logger = get_logger()
 
-@click.group()
-def cli():
-    """Simple CLI for viewing and refreshing stock data."""
-    pass
+# ---------------------------------------------------------
+# Recurring Live Data Updates
+# ---------------------------------------------------------
 
-@click.command()
-@click.argument('ticker')
-@click.option('--refresh/--no-refresh', default=False,
-              help="If set, fetch & store the latest live data for the given ticker before display.")
-def live(ticker, refresh):
-    """
-    Show the most recent live data for a given TICKER.
-
-    Example usage:
-      live AAPL --refresh
-    """
-    click.secho(f"\n[INFO] Processing 'live' command for {ticker}", fg='yellow', bold=True)
-
-    # 1) Optionally refresh the data
-    if refresh:
-        click.secho(f"Refreshing live data for {ticker} ...", fg='cyan')
-        try:
-            fetch_and_store_live_for_ticker(DB_FILE, ticker)
-            click.secho(f"Successfully refreshed live data for {ticker}.", fg='green')
-        except Exception as e:
-            logger.error(f"Live data refresh failed for {ticker}: {e}")
-            click.secho(f"\n[ERROR] Could not refresh live data for {ticker}.\n", fg='red')
-            return
-
-    # 2) Query the database
+def run_live_data_update():
+    logger.info("Starting recurring live data update...")
     try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        subprocess.run([sys.executable, DB_INGEST_SCRIPT], check=True)
+        logger.info("Live data update completed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Live data update failed: {e}")
 
-        query = """
-        SELECT t.symbol, l.price, l.change, l.percent_change, l.timestamp
-          FROM LiveData l
-          JOIN Ticker t ON t.id = l.ticker_id
-         WHERE t.symbol = ?
-      ORDER BY l.id DESC
-         LIMIT 1
-        """
+# ---------------------------------------------------------
+# Scheduling Thread
+# ---------------------------------------------------------
 
-        cursor.execute(query, (ticker,))
-        data = cursor.fetchone()
-        conn.close()
+def schedule_runner():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+        
+# ---------------------------------------------------------
+# Countdown
+# ---------------------------------------------------------
 
-        if data:
-            symbol, price, change, pct, ts = data
+def show_countdown_to_next_update(interval_minutes):
+    logger.info("Showing countdown to next update.")
+    seconds_remaining = LIVE_UPDATE_INTERVAL_SECONDS
+    while seconds_remaining > 0:
+        sys.stdout.write(f"\rNext update in {seconds_remaining} seconds... ")
+        sys.stdout.flush()
+        time.sleep(1)
+        seconds_remaining -= 1
+    sys.stdout.write("\rUpdating data now...    \n")
+    
 
-            click.secho("\n--- LIVE DATA ---", fg='blue', bold=True)
-            click.echo(f" Ticker:         {symbol}")
-            click.echo(f" Price:          ${price:.2f}")
+# ---------------------------------------------------------
+# Spinner Utility
+# ---------------------------------------------------------
 
-            if change is not None:
-                color = 'green' if change >= 0 else 'red'
-                click.secho(f" Change:         {change:.2f}", fg=color)
-            else:
-                click.echo(" Change:         N/A")
+complete = [False]  # shared variable to signal spinner to stop
 
-            if pct is not None:
-                color = 'green' if pct >= 0 else 'red'
-                click.secho(f" Percent Change: {pct:.2f}%", fg=color)
-            else:
-                click.echo(" Percent Change: N/A")
+def show_spinner(function_name, *args, **kwargs):
+    """
+    Show a spinner while a long-running function is in progress.
+    """
+    def spinner_task():
+        spinner_chars = ["|", "/", "-", "\\"]
+        i = 0
+        while not complete[0]:
+            sys.stdout.write(f"\rAccessing & Loading Data... {spinner_chars[i]} ")
+            sys.stdout.flush()
+            i = (i + 1) % len(spinner_chars)
+            time.sleep(0.1)
+        sys.stdout.write("\rData Loading Completed...  \n")
 
-            click.echo(f" Timestamp:      {ts}")
-            click.secho("---\n", fg='blue', bold=True)
+    spinner_thread = threading.Thread(target=spinner_task, daemon=True)
+    spinner_thread.start()
 
-        else:
-            click.secho(f"No live data found in the DB for ticker='{ticker}'.", fg='red')
-    except Exception as e:
-        logger.error(f"Error fetching live data for {ticker}: {e}")
-        click.secho(f"[ERROR] Unable to retrieve live data for {ticker}", fg='red')
+    function_name(*args, **kwargs)
 
+    complete[0] = True
+    spinner_thread.join()
 
-cli.add_command(live)
-
-if __name__ == "__main__":
-    cli()
